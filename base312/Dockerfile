@@ -1,4 +1,4 @@
-FROM ubuntu:oracular AS backend-compat-build
+FROM ubuntu:noble-20240904.1 AS backend-compat-build
 WORKDIR /
 # default working shell
 SHELL ["/bin/bash", "-e", "-o", "pipefail", "-c"]
@@ -713,14 +713,16 @@ RUN apt install -y --no-install-recommends  \
     zlib1g	\
     zlib1g-dev	\
     python3-cffi python3-brotli \
-    libgtk-3-dev gobject-introspection gobject-introspection-bin libboost-all-dev
+    libgtk-3-dev gobject-introspection gobject-introspection-bin 
+    #    too big , reserved for vowpalwabbit
+    #    libboost-all-dev \
 
 COPY requirements.txt /app/etc
 
 # clear package conflict before pip installation
 RUN python3 -m pip config set global.break-system-packages true
 # install python development environment packages
-# RUN pip3 install -r /app/etc/requirements.txt
+RUN pip3 install -I -r /app/etc/requirements.txt
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
@@ -734,6 +736,6 @@ EXPOSE 22 8000 8080
 
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 # ubuntu:noble docker version directory missing bug must be fixed below 
-# RUN mkdir /run/sshd
+RUN mkdir /run/sshd
 
 CMD ["/sbin/sshd", "-D"]
