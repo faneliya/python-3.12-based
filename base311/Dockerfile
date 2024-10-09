@@ -1,4 +1,4 @@
-FROM ubuntu:noble-20240904.1 AS backend-compat-build
+FROM ubuntu:jammy-20240911.1 AS backend-compat-build
 WORKDIR /
 # default working shell
 SHELL ["/bin/bash", "-e", "-o", "pipefail", "-c"]
@@ -7,6 +7,11 @@ SHELL ["/bin/bash", "-e", "-o", "pipefail", "-c"]
 RUN mkdir /app && \
     mkdir /app/code && \
     mkdir /app/data && \
+    mkdir /app/mnt  && \
+    mkdir /app/mnt/vdk0 && \
+    mkdir /app/mnt/vdk1 && \
+    mkdir /app/mnt/vdk2 && \
+    mkdir /app/mnt/vdk3 && \
     mkdir /app/etc && \
     apt update -y && \
     echo 'END OF APT UPDATE'
@@ -710,29 +715,55 @@ RUN apt install -y --no-install-recommends  \
     xtrans-dev	\
     xxd	\
     xz-utils	\
+    zip \
     zlib1g	\
     zlib1g-dev	\
     python3-cffi python3-brotli \
-    libgtk-3-dev gobject-introspection gobject-introspection-bin 
+    python3-gi python3-gi-cairo gir1.2-gtk-4.0 \
+    libgtk-3-dev gobject-introspection 
     #    too big , reserved for vowpalwabbit
     #    libboost-all-dev \
+    # itstool ?
 
 COPY requirements.txt /app/etc
+COPY conflicts.txt /app/etc
+
 
 # clear package conflict before pip installation
 RUN python3 -m pip config set global.break-system-packages true
+
 # install python development environment packages
-RUN pip3 install -I -r /app/etc/requirements.txt
+# RUN pip3 install --no-cache-dir --ignore-installed -r /app/etc/requirements.txt
+RUN pip3 install --no-cache-dir --no-deps --disable-pip-version-check -I -r /app/etc/requirements.txt
+
+RUN pip3 install -r /app/etc/conflicts.txt
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 RUN groupadd -g 9000 dev && \
-    useradd -r -g dev -d /app/code dev && \
-    chown dev:dev /app/code
-RUN echo "dev:kepco123456/" | chpasswd
-RUN echo "root:kepco123456/" | chpasswd
+    mkdir /home/dev-fastapi && \
+    mkdir /home/dev-django && \
+    mkdir /home/dev-react && \
+    cp /root/.bashrc /app/code/ && \
+    cp /root/.bashrc /home/dev-fastapi/ && \
+    cp /root/.bashrc /home/dev-django/ && \
+    cp /root/.bashrc /home/dev-react/ && \
+    useradd -r -g dev -d /app/code -s /bin/bash dev && \
+    useradd -r -g dev -d /home/dev-fastapi -s /bin/bash dev-fastapi && \
+    useradd -r -g dev -d /home/dev-django -s /bin/bash dev-django && \
+    useradd -r -g dev -d /home/dev-react dev-react && \
+    chown -R dev:dev /app/code && \
+    chown -R dev-fastapi:dev /home/dev-fastapi && \
+    chown -R dev-django:dev /home/dev-django && \
+    chown -R dev-react:dev /home/dev-react
 
-EXPOSE 22 8000 8080 
+RUN echo "dev:kepco123456/" | chpasswd &&\
+    echo "root:kepco123456/" | chpasswd &&\
+    echo "dev-fastapi:kepco123456/" | chpasswd &&\
+    echo "dev-django:kepco123456/" | chpasswd &&\
+    echo "dev-react:kepco123456/" | chpasswd
+ 
+EXPOSE 22 3000 8000 8040 8080 8090 
 
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 # ubuntu:noble docker version directory missing bug must be fixed below 
