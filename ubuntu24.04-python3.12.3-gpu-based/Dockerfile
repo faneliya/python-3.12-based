@@ -1,5 +1,5 @@
 #FROM ubuntu:noble-20240904.1 AS backend-compat-build
-FROM nvidia/cuda:12.9.1-cudnn-devel-ubuntu24.04 AS gpu-support-dev
+FROM nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04 AS gpu-support-dev
 WORKDIR /
 # default working shell
 SHELL ["/bin/bash", "-e", "-o", "pipefail", "-c"]
@@ -744,15 +744,37 @@ RUN apt install -y --no-install-recommends  \
     #    too big , reserved for vowpalwabbit
     #    libboost-all-dev \
 
+RUN apt-get install tensorrt
 
 # clear package conflict before pip installation
 RUN python3 -m pip config set global.break-system-packages true
 
+# install applications
+WORKDIR /
+# update version 1.2.0 - 1.2.
+RUN pip3 install jupyter
+# ollomba
+RUN curl -fsSL https://ollama.com/install.sh | sh
+
+
 # install python development environment packages
 COPY requirements.txt /app/etc
-RUN pip3 install --no-cache-dir --ignore-installed -r /app/etc/requirements.txt
-#RUN pip3 install --no-cache-dir --no-deps --disable-pip-version-check -I -r /app/etc/requirements.txt
+#RUN pip3 install --no-cache-dir --ignore-installed -r /app/etc/requirements.txt
+RUN pip3 install --no-cache-dir --no-deps --disable-pip-version-check -I -r /app/etc/requirements.txt
 
+# for application setting ######################################################
+COPY scripts/*.sh /app/bin
+RUN chmod 755 /app/bin/*.sh
+
+# install practice codes
+WORKDIR /app/github/
+RUN git clone https://github.com/rickiepark/ml-with-pytorch.git
+RUN git clone https://github.com/rickiepark/handson-ml3.git
+RUN git clone https://github.com/ollama/ollama.git
+
+# https://github.com/nvidia-cosmos/cosmos-predict1.git
+# https://github.com/nvidia-cosmos/cosmos-predict2.git
+# https://github.com/nvidia-cosmos/cosmos-reason1.git
 
 RUN groupadd -g 9000 dev && \
     mkdir /home/dev-fastapi && \
@@ -781,8 +803,25 @@ RUN echo "dev:kepco123456/" | chpasswd &&\
 #     ncu -u &&\
 #     npm install --force or --legacy-peer-deps
 
- 
-EXPOSE 22 3000 8000 8040 8080 8090 
+# PORT EXPOSE ##################################################################
+# ssh
+EXPOSE 22
+# http
+EXPOSE 80
+# django or react something 
+EXPOSE 3000
+# flask 
+EXPOSE 5000
+# http tomcat etc
+EXPOSE 8000 
+# http tomcat
+EXPOSE 8040 
+# http application
+EXPOSE 8080 
+# http extra
+EXPOSE 8090
+# jupyter
+EXPOSE 9080 
 
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 # ubuntu:noble docker version directory missing bug must be fixed below 

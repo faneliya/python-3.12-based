@@ -157,6 +157,7 @@ funcparserlib==1.0.1
 funcsigs==1.0.2
 future==1.0.0
 gast==0.6.0
+gdown==5.2.0
 geoip2==4.8.0
 gevent==24.2.1
 geventhttpclient==2.3.1
@@ -549,3 +550,5 @@ yarl==1.13.1
 zipp==3.20.2
 zope.event==5.0
 zope.interface==7.0.3
+langchain
+langchain-openai
