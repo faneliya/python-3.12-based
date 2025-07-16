@@ -744,7 +744,7 @@ RUN apt install -y --no-install-recommends  \
     #    too big , reserved for vowpalwabbit
     #    libboost-all-dev \
 
-RUN apt-get install tensorrt
+RUN apt-get -y install tensorrt
 
 # clear package conflict before pip installation
 RUN python3 -m pip config set global.break-system-packages true
